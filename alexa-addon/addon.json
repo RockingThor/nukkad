@@ -1,0 +1,53 @@
+{
+  "$schema": "https://developer.amazon.com/schemas/alexa-plus/addon-manifest/v1",
+  "version": "1.0.0",
+  "name": "Nukkad",
+  "description": "Your local corner store on Alexa+. Order from kiranas, bakeries, and dairies in your neighborhood.",
+  "longDescription": "Nukkad brings the long tail of independent corner stores to Alexa+. Whether it's a kirana in Bangalore, a bodega in Queens, or a home bakery down the street, Nukkad makes any shop voice-accessible. Order in English or Hinglish, track deliveries, manage khata (store credit), and support local businesses—all through Alexa.",
+  "category": "shopping",
+  "regions": ["US", "IN"],
+  "languages": ["en-US", "en-IN", "hi-IN"],
+  "examplePhrases": [
+    "Alexa, ask Nukkad to get my usual order",
+    "Alexa, tell Nukkad I need milk and bread",
+    "Alexa, ask Nukkad where's my order",
+    "Alexa, check my khata balance at Nukkad"
+  ],
+  "icons": {
+    "small": "https://example.com/icon-108.png",
+    "large": "https://example.com/icon-512.png"
+  },
+  "carousel": [
+    {
+      "image": "https://example.com/carousel-1.jpg",
+      "caption": "Order from your neighborhood kirana"
+    },
+    {
+      "image": "https://example.com/carousel-2.jpg",
+      "caption": "Track deliveries in real-time"
+    },
+    {
+      "image": "https://example.com/carousel-3.jpg",
+      "caption": "Manage khata credit across shops"
+    }
+  ],
+  "privacyPolicyUrl": "https://example.com/privacy",
+  "termsOfServiceUrl": "https://example.com/terms",
+  "supportUrl": "https://example.com/support",
+  "developer": {
+    "name": "Rohit Nandi",
+    "email": "developer@example.com",
+    "website": "https://example.com"
+  },
+  "mcp": {
+    "serverUrl": "https://api.nukkad.example.com",
+    "protocolVersion": "2025-11-25",
+    "transport": "streamable-http",
+    "oauth": {
+      "authorizationEndpoint": "https://api.nukkad.example.com/oauth/authorize",
+      "tokenEndpoint": "https://api.nukkad.example.com/oauth/token",
+      "scopes": ["read:shops", "read:products", "write:orders", "read:khata"],
+      "protectedResourceMetadata": "https://api.nukkad.example.com/.well-known/oauth-authorization-server"
+    }
+  }
+}
