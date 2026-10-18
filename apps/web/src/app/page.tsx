@@ -32,7 +32,7 @@ export default function Home() {
           <div><h3>One server, every shop</h3><p>Shops join Nukkad, not Alexa. A kirana, a bakery and a dairy share one MCP endpoint, and one sentence can order from all three.</p></div>
           <div><h3>Khata, natively</h3><p>Store credit is how neighbourhood retail runs. Nukkad checks each shop&rsquo;s credit limit before it orders and writes every entry to the ledger.</p></div>
           <div><h3>MCP Apps cards</h3><p>Cart, order tracker and khata are ui:// views served by the MCP server and rendered by the host in a sandboxed frame.</p></div>
-          <div><h3>Serverless on AWS</h3><p>Stateless Streamable HTTP on a Lambda Function URL with DynamoDB on demand. The adapter ships as mcp-lambda-kit, MIT licensed.</p></div>
+          <div><h3>Serverless on AWS</h3><p>Stateless Streamable HTTP on a Lambda Function URL with DynamoDB on demand. The adapter ships as <span className={s.nw}>mcp-lambda-kit</span>, MIT licensed.</p></div>
         </section>
       </main>
       <footer className={s.foot}>Nukkad. Demo data only. Shop names and people are fictional.</footer>
