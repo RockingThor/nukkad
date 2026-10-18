@@ -1,0 +1,39 @@
+{
+  "$schema": "https://developer.amazon.com/schemas/alexa-plus/addon-manifest/v1",
+  "version": "1.0.0",
+  "name": "Nukkad",
+  "description": "Your local corner store on Alexa+. Order from kiranas, bakeries, and dairies in your neighborhood.",
+  "longDescription": "Nukkad brings the long tail of independent corner stores to Alexa+. A kirana, a bakery and a dairy on the same street share one MCP server, so one sentence can order from all three. Order in English or Hinglish, track deliveries and manage khata, the store credit neighbourhood shops run on.",
+  "category": "shopping",
+  "regions": [
+    "US",
+    "IN"
+  ],
+  "languages": [
+    "en-US",
+    "en-IN",
+    "hi-IN"
+  ],
+  "examplePhrases": [
+    "Alexa, ask Nukkad to get my usual order",
+    "Alexa, tell Nukkad I need milk and bread",
+    "Alexa, ask Nukkad where's my order",
+    "Alexa, check my khata balance at Nukkad"
+  ],
+  "icons": {
+    "small": "https://sg7rrjgz36ukucf6okmydj7gpi0ecppw.lambda-url.us-east-1.on.aws/icon.svg",
+    "large": "https://sg7rrjgz36ukucf6okmydj7gpi0ecppw.lambda-url.us-east-1.on.aws/icon.svg"
+  },
+  "privacyPolicyUrl": "https://sg7rrjgz36ukucf6okmydj7gpi0ecppw.lambda-url.us-east-1.on.aws/",
+  "termsOfServiceUrl": "https://sg7rrjgz36ukucf6okmydj7gpi0ecppw.lambda-url.us-east-1.on.aws/",
+  "supportUrl": "https://sg7rrjgz36ukucf6okmydj7gpi0ecppw.lambda-url.us-east-1.on.aws/",
+  "developer": {
+    "name": "Rohit Nandi",
+    "website": "https://sg7rrjgz36ukucf6okmydj7gpi0ecppw.lambda-url.us-east-1.on.aws/"
+  },
+  "mcp": {
+    "serverUrl": "https://sg7rrjgz36ukucf6okmydj7gpi0ecppw.lambda-url.us-east-1.on.aws/mcp",
+    "protocolVersion": "2025-11-25",
+    "transport": "streamable-http"
+  }
+}

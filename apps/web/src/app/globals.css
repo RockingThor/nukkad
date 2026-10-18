@@ -1,0 +1,37 @@
+:root{
+  --bg:#000;--panel:#0a0a0a;--panel2:#111;--line:#1f1f1f;--line2:#2a2a2a;
+  --fg:#fff;--fg2:#d4d4d4;--mute:#8a8a8a;--dim:#5c5c5c;
+  --red:#e5484d;--red-bg:rgba(229,72,77,.1);--green:#30a46c;--green-bg:rgba(48,164,108,.1);
+  --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--fg);-webkit-font-smoothing:antialiased;font-feature-settings:"ss01","cv11"}
+body{font-family:var(--font-inter),-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.5}
+a{color:inherit;text-decoration:none}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+::selection{background:var(--green);color:#000}
+.mono{font-family:var(--font-mono),ui-monospace,SFMono-Regular,Menlo,monospace}
+.nav{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:-.02em;font-size:18px}
+.brand i{width:10px;height:10px;border-radius:3px;background:var(--green);display:inline-block}
+.navlinks{display:flex;gap:6px}
+.navlinks a{padding:8px 14px;border-radius:999px;color:var(--mute);font-size:14px;font-weight:500}
+.navlinks a:hover{color:var(--fg)}
+.navlinks a.on{color:var(--fg);background:var(--panel2);border:1px solid var(--line2)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 20px;border-radius:999px;font-weight:600;font-size:15px;transition:transform .15s,opacity .15s}
+.btn:active{transform:scale(.98)}
+.btn.pri{background:var(--fg);color:#000}
+.btn.sec{border:1px solid var(--line2);color:var(--fg)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid var(--line2);color:var(--mute);white-space:nowrap}
+.pill.g{color:var(--green);border-color:rgba(48,164,108,.4);background:var(--green-bg)}
+.pill.r{color:var(--red);border-color:rgba(229,72,77,.4);background:var(--red-bg)}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.live .dot{animation:pulse 1.6s infinite}
+@media (max-width:700px){
+  .nav{padding:0 16px;height:56px}
+  .navlinks{gap:2px}
+  .navlinks a{padding:6px 10px;font-size:13px;white-space:nowrap}
+  .navlinks a:first-child{display:none}
+}

@@ -1,0 +1,27 @@
+{
+  "name": "nukkad",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Nukkad: the corner store, on Alexa+. Multi-tenant MCP server for independent shops.",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter './packages/*' --filter './apps/*' dev",
+    "build": "pnpm --filter './packages/*' build && pnpm --filter './apps/*' build",
+    "test": "pnpm --filter './packages/*' test",
+    "lint": "pnpm --parallel --filter './packages/*' --filter './apps/*' lint",
+    "deploy": "./deploy/deploy.sh",
+    "start": "pnpm --filter @nukkad/mcp-server start"
+  },
+  "keywords": [
+    "mcp",
+    "alexa-plus",
+    "kirana",
+    "bodega",
+    "corner-store",
+    "voice-commerce"
+  ],
+  "author": "Rohit Nandi",
+  "license": "MIT"
+}
