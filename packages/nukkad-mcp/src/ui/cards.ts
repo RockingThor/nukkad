@@ -39,6 +39,7 @@ body{background:var(--bg);color:var(--fg);font:14px/1.45 -apple-system,BlinkMacS
 </style></head><body><div id="root" class="card"><div class="mute">Loading</div></div>
 <script>
 const $=s=>document.querySelector(s);
+const pl=(n,w)=>n+' '+w+(n===1?'':'s');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const inr=n=>'₹'+Math.round(n||0).toLocaleString('en-IN');
 function size(){parent.postMessage({jsonrpc:'2.0',method:'ui/notifications/size-changed',params:{height:document.documentElement.scrollHeight}},'*')}
@@ -56,7 +57,7 @@ export const cartCard = shell('Nukkad cart', `
  const groups=(d.byShop||[]).map(g=>'<div class="grp"><div class="gh"><span>'+esc(g.shopName)+'</span><span class="mute">'+inr(g.subtotal)+'</span></div>'+
    g.items.map(i=>'<div class="row"><span>'+esc(i.name)+'</span><span class="q">x'+i.quantity+'</span><span class="p">'+inr(i.lineTotal)+'</span></div>').join('')+'</div>').join('');
  const ok=d.allAvailable!==false;
- return '<div class="hd"><div><div class="ttl">Cart</div><div class="big">'+(d.byShop||[]).length+' shops, '+(d.itemCount||0)+' items</div></div>'+
+ return '<div class="hd"><div><div class="ttl">Cart</div><div class="big">'+pl((d.byShop||[]).length,'shop')+', '+pl(d.itemCount||0,'item')+'</div></div>'+
   '<span class="pill '+(d.substitutions&&d.substitutions.length?'r':'g')+'">'+esc(d.note||'Ready')+'</span></div>'+groups+subs+
   '<div class="tot"><span class="mute">Total</span><span class="v">'+inr(d.total)+'</span></div>';
 `);
@@ -65,7 +66,7 @@ export const orderTrackerCard = shell('Nukkad order tracker', `
  const flow=['pending','accepted','ready','delivered'];const names=['Placed','Accepted','Packed','Delivered'];
  const os=(d.orders||[]).map(o=>{const k=Math.max(0,flow.indexOf(o.status));
   return '<div class="grp"><div class="gh"><span>'+esc(o.shopName)+' <span class="mute">'+esc(o.orderId)+'</span></span><span>'+inr(o.total)+'</span></div>'+
-  '<div class="mute" style="font-size:13px">'+o.itemCount+' items, '+(o.paymentMethod==='khata'?'on khata':esc(o.paymentMethod))+(o.deliverBy?', for '+esc(o.deliverBy):'')+'</div>'+
+  '<div class="mute" style="font-size:13px">'+pl(o.itemCount||0,'item')+', '+(o.paymentMethod==='khata'?'on khata':esc(o.paymentMethod))+(o.deliverBy?', for '+esc(o.deliverBy):'')+'</div>'+
   '<div class="steps">'+flow.map((_,i)=>'<div class="st '+(i<=k?'on':'')+'"></div>').join('')+'</div>'+
   '<div class="lbls">'+names.map((n,i)=>'<span class="'+(i<=k?'on':'')+'">'+n+'</span>').join('')+'</div></div>'}).join('');
  return '<div class="hd"><div><div class="ttl">Orders</div><div class="big">'+(d.count||0)+' order'+(d.count===1?'':'s')+' placed</div></div><span class="pill g">Live</span></div>'+os+
@@ -78,7 +79,7 @@ export const khataCard = shell('Nukkad khata', `
   '<div class="bar"><i class="'+(pct>80?'hi':'')+'" style="width:'+Math.max(2,pct)+'%"></i></div>'+
   '<div class="mute" style="font-size:12px;margin-bottom:6px">'+inr(a.availableCredit)+' credit left of '+inr(a.creditLimit)+'</div>'+
   (a.entries||[]).slice(0,3).map(e=>'<div class="ent"><span>'+esc(e.description)+'</span><span class="'+(e.type==='credit'?'g':'r')+'">'+(e.type==='credit'?'+':'-')+inr(e.amount)+'</span></div>').join('')+'</div>'}).join('');
- return '<div class="hd"><div><div class="ttl">Khata</div><div class="big">'+inr(d.totalDue)+' due</div></div><span class="pill '+(d.totalDue>0?'r':'g')+'">'+(d.accounts||[]).length+' shops</span></div>'+acc;
+ return '<div class="hd"><div><div class="ttl">Khata</div><div class="big">'+inr(d.totalDue)+' due</div></div><span class="pill '+(d.totalDue>0?'r':'g')+'">'+pl((d.accounts||[]).length,'shop')+'</span></div>'+acc;
 `);
 
 export const UI_RESOURCES = [

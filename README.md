@@ -17,7 +17,7 @@ Big brands get Alexa+ integrations. The kirana down the road does not. Nukkad is
 
 > I'm having six friends over on Saturday for chai and snacks. Get what I usually get, enough for everyone, and put it on my khata.
 
-`get_usual` → `build_cart` scaled 3x → `check_stock_and_substitute` swaps Biscuits, only 4 left, for Cake Rusk from the bakery → `khata_balance` → `place_order` creates three orders, one per shop, on khata. The shop console shows them live.
+`get_usual` → `build_cart` scaled 3x → `check_stock_and_substitute` swaps Biscuits, only 4 left, for Cake Rusk from the bakery → `place_order` checks each shop's credit limit and creates three orders, one per shop, on khata → `khata_balance` shows the updated credit. The shop console shows them live.
 
 ## How it fits together
 

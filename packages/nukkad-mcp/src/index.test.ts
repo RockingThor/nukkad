@@ -38,6 +38,7 @@ describe('nukkad mcp', () => {
     const checked = sc(await c.callTool({ name: 'check_stock_and_substitute', arguments: { customerId: 'customer-1' } }));
     expect(checked.substitutions[0].original).toBe('Biscuits');
     expect(checked.substitutions[0].substitute).toBe('Cake Rusk');
+    expect(checked.note).toBe('1 substitution made');
     const placed = sc(await c.callTool({ name: 'place_order', arguments: { customerId: 'customer-1', paymentMethod: 'khata', deliverBy: 'Saturday 5 PM' } }));
     expect(placed.count).toBe(3);
     const khata = sc(await c.callTool({ name: 'khata_balance', arguments: { customerId: 'customer-1' } }));

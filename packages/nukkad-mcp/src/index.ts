@@ -33,7 +33,7 @@ export function createNukkadServer(storage: StorageLayer) {
       instructions:
         'Nukkad connects a customer to the independent corner shops near them: a kirana, a bakery and a dairy. ' +
         'Use get_usual to recall what they normally buy, build_cart to make a cart (fromUsual with scaleBy for parties), ' +
-        'check_stock_and_substitute before ordering, khata_balance to check store credit and place_order to send the order to each shop.',
+        'check_stock_and_substitute before ordering, place_order to send the order to each shop, which checks khata limits itself, and khata_balance to show store credit.',
     },
   );
 

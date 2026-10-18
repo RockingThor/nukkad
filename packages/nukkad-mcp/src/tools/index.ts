@@ -119,7 +119,7 @@ export async function checkStockAndSubstitute(args: { customerId: string; autoSu
     }
   }
   await storage.saveCart({ ...cart, items: out, updatedAt: new Date().toISOString() });
-  const view = await cartView(args.customerId, out, storage, substitutions.length ? `${substitutions.length} substitution(s) made` : 'Everything is in stock', substitutions);
+  const view = await cartView(args.customerId, out, storage, substitutions.length ? `${substitutions.length} ${substitutions.length === 1 ? 'substitution' : 'substitutions'} made` : 'Everything is in stock', substitutions);
   return { ...view, shortages, allAvailable: shortages.length === 0 };
 }
 

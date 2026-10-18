@@ -21,7 +21,7 @@ export default function Home() {
           <span className={s.say}>You say</span>
           <p>&ldquo;I&rsquo;m having six friends over on Saturday for chai and snacks. Get what I usually get, enough for everyone, and put it on my khata.&rdquo;</p>
           <div className={s.flow}>
-            {['get_usual', 'build_cart x3', 'check_stock_and_substitute', 'khata_balance', 'place_order'].map((t, i) => (
+            {['get_usual', 'build_cart x3', 'check_stock_and_substitute', 'place_order', 'khata_balance'].map((t, i) => (
               <span key={t}><b className="mono">{t}</b>{i < 4 && <i>→</i>}</span>
             ))}
           </div>

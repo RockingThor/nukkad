@@ -19,6 +19,15 @@ const ago = (iso: string) => {
   return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : `${Math.floor(m / 60)} h ago`;
 };
 
+const PLURAL: Record<string, string> = { packet: 'packets', pack: 'packs', piece: 'pieces', loaf: 'loaves', box: 'boxes', tube: 'tubes', liter: 'liters', 'pack of 6': 'packs of 6' };
+// 4 packets, 1 loaf, 3 kg, 6 x 500 g
+function qty(n: number, unit: string) {
+  const m = /^(\d+)\s*(g|kg|ml|l)$/i.exec(unit ?? '');
+  if (m) return `${n} x ${m[1]} ${m[2]}`;
+  if (unit === 'kg') return `${n} kg`;
+  return `${n} ${n === 1 ? unit : PLURAL[unit] ?? unit}`;
+}
+
 export default function ShopPage() {
   const [shopId, setShopId] = useState(SHOPS[0].id);
   const [data, setData] = useState<any>(null);
@@ -112,7 +121,7 @@ export default function ShopPage() {
             <div className={s.box}>
               <h3>Running low</h3>
               {(data?.lowStock ?? []).length ? data.lowStock.map((p: any) => (
-                <div key={p.name} className={s.low}><span>{p.name}</span><span className={p.stock <= 3 ? s.r : ''}>{p.stock} {p.unit}</span></div>
+                <div key={p.name} className={s.low}><span>{p.name}</span><span className={p.stock <= 3 ? s.r : ''}>{qty(p.stock, p.unit)}</span></div>
               )) : <div className={s.low}><span>Stock is healthy</span><span className={s.g}>OK</span></div>}
             </div>
             <div className={s.box}>
