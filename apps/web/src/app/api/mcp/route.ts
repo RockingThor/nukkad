@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createNukkadServer } from '@nukkad/mcp-server';
-import { getSharedStorage } from '../../shop/[id]/orders/route';
+import { getSharedStorage } from '@/lib/shared-storage';
 
 const storage = getSharedStorage();
 const server = createNukkadServer(storage);

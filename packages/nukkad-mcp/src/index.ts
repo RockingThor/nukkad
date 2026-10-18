@@ -555,3 +555,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(1);
   });
 }
+
+// Export storage classes for web usage
+export { MemoryStorage } from './storage/memory.js';
+export type { StorageLayer } from './storage/interface.js';

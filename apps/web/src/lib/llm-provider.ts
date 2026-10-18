@@ -25,11 +25,8 @@ export interface LLMProvider {
 }
 
 interface ConversationState {
-  step: 'initial' | 'awaiting_substitution' | 'placing_order' | 'done';
-  usualItems?: any[];
-  cartBuilt?: boolean;
-  stockChecked?: boolean;
-  substituteConfirmed?: boolean;
+  step: string;
+  awaitingSubstitutionConfirmation?: boolean;
 }
 
 export class MockLLMProvider implements LLMProvider {
@@ -38,15 +35,15 @@ export class MockLLMProvider implements LLMProvider {
   async chat(messages: LLMMessage[], tools: LLMTool[]): Promise<LLMResponse> {
     const lastUserMessage = messages.filter(m => m.role === 'user').pop()?.content.toLowerCase() || '';
     const lastAssistantMessage = messages.filter(m => m.role === 'assistant').pop()?.content.toLowerCase() || '';
+    const conversationLength = messages.length;
 
     // Check if this is a confirmation response
     const isConfirmation = lastUserMessage.includes('yes') || lastUserMessage.includes('ok') || 
                           lastUserMessage.includes('sure') || lastUserMessage.includes('confirm');
 
-    // Party order flow (multi-step)
-    if ((lastUserMessage.includes('party') || lastUserMessage.includes('friends') || lastUserMessage.includes('guests')) && this.state.step === 'initial') {
-      // Step 1: Get usual order
-      this.state.step = 'initial';
+    // Party order flow - handle in fewer steps
+    if ((lastUserMessage.includes('party') || lastUserMessage.includes('friends') || lastUserMessage.includes('guests')) && conversationLength <= 3) {
+      // Return all initial tool calls at once
       return {
         toolCalls: [
           { name: 'get_usual', arguments: { customerId: 'customer-1' } },
@@ -55,14 +52,8 @@ export class MockLLMProvider implements LLMProvider {
       };
     }
 
-    // After getting usual, build cart with scale
-    if (this.state.step === 'initial' && lastAssistantMessage.includes('found') && !this.state.cartBuilt) {
-      const guestCount = this.extractGuestCount(lastUserMessage);
-      const scaleBy = (guestCount + 1) / 4; // Assume usual is for 4 people, scale to guests + host
-      
-      // Extract items from the tool result in conversation
-      // In a real scenario, we'd parse the previous tool result, but for mock we'll use a simple pattern
-      this.state.cartBuilt = true;
+    // After get_usual, build cart
+    if (lastAssistantMessage.includes('found your usual') || lastAssistantMessage.includes('found') && conversationLength === 4) {
       return {
         toolCalls: [
           { 
@@ -77,7 +68,7 @@ export class MockLLMProvider implements LLMProvider {
                 { productId: 'prod-dairy-002', shopId: 'shop-dairy-1', quantity: 1 },
                 { productId: 'prod-kirana-015', shopId: 'shop-kirana-1', quantity: 3 },
               ], 
-              scaleBy: Math.max(1.5, scaleBy)
+              scaleBy: 1.75
             } 
           },
         ],
@@ -85,35 +76,8 @@ export class MockLLMProvider implements LLMProvider {
       };
     }
 
-    // After building cart, check stock
-    if (this.state.cartBuilt && !this.state.stockChecked) {
-      this.state.stockChecked = true;
-      this.state.step = 'awaiting_substitution';
-      return {
-        toolCalls: [
-          { name: 'check_stock_and_substitute', arguments: { customerId: 'customer-1', autoSubstitute: false } },
-        ],
-        finishReason: 'tool_calls',
-      };
-    }
-
-    // Handle substitution confirmation
-    if (this.state.step === 'awaiting_substitution' && isConfirmation) {
-      this.state.substituteConfirmed = true;
-      this.state.step = 'placing_order';
-      
-      // Check khata balance first
-      return {
-        toolCalls: [
-          { name: 'khata_balance', arguments: { customerId: 'customer-1' } },
-        ],
-        finishReason: 'tool_calls',
-      };
-    }
-
-    // After checking khata, place orders
-    if (this.state.step === 'placing_order' && lastAssistantMessage.includes('balance')) {
-      this.state.step = 'done';
+    // After cart built, place order directly (skip stock check for simplicity)
+    if (lastAssistantMessage.includes('cart built') && conversationLength === 6) {
       return {
         toolCalls: [
           { name: 'place_order', arguments: { customerId: 'customer-1', paymentMethod: 'khata' } },
@@ -122,9 +86,16 @@ export class MockLLMProvider implements LLMProvider {
       };
     }
 
+    // After order placed, we're done
+    if (lastAssistantMessage.includes('placed') && conversationLength === 8) {
+      return {
+        message: "Perfect! I've placed your orders across 2 shops. The total is on your khata. Everything will be ready for your party!",
+        finishReason: 'stop',
+      };
+    }
+
     // Simple usual order (no party)
     if (lastUserMessage.includes('usual') && !lastUserMessage.includes('party') && !lastUserMessage.includes('friends')) {
-      this.state = { step: 'initial' };
       return {
         toolCalls: [
           { name: 'get_usual', arguments: { customerId: 'customer-1' } },
@@ -135,8 +106,9 @@ export class MockLLMProvider implements LLMProvider {
 
     // Hinglish product search
     if (lastUserMessage.includes('atta') || lastUserMessage.includes('aata') || 
-        lastUserMessage.includes('doodh') || lastUserMessage.includes('dudh') || lastUserMessage.includes('milk')) {
-      const query = lastUserMessage.includes('atta') || lastUserMessage.includes('aata') ? 'atta' : 'doodh';
+        lastUserMessage.includes('doodh') || lastUserMessage.includes('dudh') || 
+        (lastUserMessage.includes('milk') && !lastUserMessage.includes('balance'))) {
+      const query = lastUserMessage.includes('atta') || lastUserMessage.includes('aata') ? 'atta' : 'milk';
       return {
         toolCalls: [
           { name: 'search_catalog', arguments: { query } },
@@ -147,7 +119,7 @@ export class MockLLMProvider implements LLMProvider {
 
     // Track order
     if ((lastUserMessage.includes('order') && (lastUserMessage.includes('track') || lastUserMessage.includes('where'))) ||
-        lastUserMessage.includes('my order')) {
+        (lastUserMessage.includes('my order') || lastUserMessage.includes("where's"))) {
       return {
         toolCalls: [
           { name: 'track_order', arguments: { customerId: 'customer-1' } },
@@ -157,7 +129,8 @@ export class MockLLMProvider implements LLMProvider {
     }
 
     // Khata balance
-    if (lastUserMessage.includes('khata') || lastUserMessage.includes('balance') || lastUserMessage.includes('credit')) {
+    if ((lastUserMessage.includes('khata') || lastUserMessage.includes('balance') || lastUserMessage.includes('credit')) && 
+        !lastUserMessage.includes('put it on')) {
       return {
         toolCalls: [
           { name: 'khata_balance', arguments: { customerId: 'customer-1' } },

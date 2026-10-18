@@ -110,7 +110,7 @@ export default function AlexaPage() {
 
       let conversationHistory = [...newMessages];
       let iterations = 0;
-      const maxIterations = 10;
+      const maxIterations = 15; // Increased from 10 for complex flows
       let finalResponse = '';
       let finalCard: any = null;
 
@@ -178,7 +178,7 @@ export default function AlexaPage() {
             }
 
             // Add tool result to conversation
-            if (toolResponse) {
+            if (toolResponse && tc.name !== 'place_order' && tc.name !== 'track_order') {
               conversationHistory.push({ role: 'assistant', content: toolResponse });
             }
           }

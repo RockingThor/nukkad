@@ -1,15 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MemoryStorage } from '@nukkad/mcp-server/dist/storage/memory.js';
-
-// Share the same storage instance across all API routes
-let sharedStorage: MemoryStorage | null = null;
-
-export function getSharedStorage() {
-  if (!sharedStorage) {
-    sharedStorage = new MemoryStorage();
-  }
-  return sharedStorage;
-}
+import { getSharedStorage } from '@/lib/shared-storage';
 
 export async function GET(
   request: NextRequest,
