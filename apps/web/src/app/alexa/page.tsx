@@ -105,54 +105,116 @@ export default function AlexaPage() {
       // System message for context
       const systemMessage: LLMMessage = {
         role: 'system',
-        content: `You are Nukkad, a voice assistant for local corner stores. Help users order groceries, track orders, and manage their khata (store credit). The user is "customer-1". Be conversational and helpful. When handling party orders, scale the usual order appropriately.`,
+        content: `You are Nukkad, a voice assistant for local corner stores. Help users order groceries, track orders, and manage their khata (store credit). The user is "customer-1". Be conversational and helpful.`,
       };
 
-      // Call LLM
-      const response = await llmProvider.current.chat(
-        [systemMessage, ...newMessages],
-        llmTools
-      );
+      let conversationHistory = [...newMessages];
+      let iterations = 0;
+      const maxIterations = 10;
+      let finalResponse = '';
+      let finalCard: any = null;
 
-      if (response.toolCalls && response.toolCalls.length > 0) {
-        // Execute tool calls
-        const toolResults = await Promise.all(
-          response.toolCalls.map(async (tc) => {
-            const result = await mcpClient.current!.callTool(tc.name, tc.arguments);
-            return { tool: tc.name, result };
-          })
+      // Multi-turn tool loop
+      while (iterations < maxIterations) {
+        iterations++;
+
+        // Call LLM
+        const response = await llmProvider.current.chat(
+          [systemMessage, ...conversationHistory],
+          llmTools
         );
 
-        // For demo, show the last result
-        const lastResult = toolResults[toolResults.length - 1];
-        const resultText = JSON.stringify(lastResult.result, null, 2);
-        
-        // Generate response based on tool results
-        let responseText = '';
-        if (lastResult.tool === 'place_order') {
-          responseText = `Great! I've placed ${lastResult.result.orders?.length || 0} order(s) for you. Total: ₹${lastResult.result.totalAmount || 0}.`;
-          setCurrentCard({ type: 'cart', data: lastResult.result });
-        } else if (lastResult.tool === 'khata_balance') {
-          responseText = `Your khata balance: You owe ₹${lastResult.result.totalDue || 0} across ${lastResult.result.accounts?.length || 0} shop(s).`;
-          setCurrentCard({ type: 'khata', data: lastResult.result });
-        } else if (lastResult.tool === 'track_order') {
-          responseText = `You have ${lastResult.result.count || 0} recent order(s).`;
-          setCurrentCard({ type: 'tracker', data: lastResult.result });
-        } else {
-          responseText = `I found ${lastResult.result.count || lastResult.result.items?.length || 0} item(s) for you.`;
-        }
+        if (response.toolCalls && response.toolCalls.length > 0) {
+          // Execute tool calls sequentially
+          for (const tc of response.toolCalls) {
+            const result = await mcpClient.current!.callTool(tc.name, tc.arguments);
+            
+            // Generate natural language response based on tool
+            let toolResponse = '';
+            
+            if (tc.name === 'get_usual') {
+              const items = result.content[0]?.text ? JSON.parse(result.content[0].text).items : [];
+              toolResponse = `I found your usual order with ${items.length} items.`;
+            } else if (tc.name === 'build_cart') {
+              const cart = result.content[0]?.text ? JSON.parse(result.content[0].text).cart : null;
+              toolResponse = `Cart built with ${cart?.itemCount || 0} items. Total: ₹${cart?.total || 0}.`;
+            } else if (tc.name === 'check_stock_and_substitute') {
+              const stockResult = result.content[0]?.text ? JSON.parse(result.content[0].text) : null;
+              if (stockResult?.outOfStock?.length > 0) {
+                const outItem = stockResult.outOfStock[0];
+                if (outItem.suggestedSubstitute) {
+                  toolResponse = `${outItem.productName} is out of stock. Would you like to substitute with ${outItem.suggestedSubstitute.productName}? (Say yes to confirm)`;
+                  // Add to conversation and wait for confirmation
+                  conversationHistory.push({ role: 'assistant', content: toolResponse });
+                  setConversation([...conversationHistory]);
+                  speak(toolResponse);
+                  setIsProcessing(false);
+                  return; // Exit and wait for user confirmation
+                }
+              } else {
+                toolResponse = `All items are in stock!`;
+              }
+            } else if (tc.name === 'khata_balance') {
+              const khataResult = result.content[0]?.text ? JSON.parse(result.content[0].text) : null;
+              toolResponse = `Your khata balance checked. Available credit confirmed.`;
+              finalCard = { type: 'khata', data: khataResult };
+            } else if (tc.name === 'place_order') {
+              const orderResult = result.content[0]?.text ? JSON.parse(result.content[0].text) : null;
+              toolResponse = `Great! I've placed ${orderResult?.orders?.length || 0} order(s) for you. Total: ₹${orderResult?.totalAmount || 0}.`;
+              finalResponse = toolResponse;
+              finalCard = { type: 'cart', data: orderResult };
+              break; // Orders placed, we're done
+            } else if (tc.name === 'track_order') {
+              const trackResult = result.content[0]?.text ? JSON.parse(result.content[0].text) : null;
+              toolResponse = `You have ${trackResult?.count || 0} recent order(s).`;
+              finalResponse = toolResponse;
+              finalCard = { type: 'tracker', data: trackResult };
+              break;
+            } else if (tc.name === 'search_catalog') {
+              const searchResult = result.content[0]?.text ? JSON.parse(result.content[0].text) : null;
+              toolResponse = `I found ${searchResult?.count || 0} product(s) matching "${searchResult?.query || ''}".`;
+            } else {
+              toolResponse = `Tool ${tc.name} executed successfully.`;
+            }
 
+            // Add tool result to conversation
+            if (toolResponse) {
+              conversationHistory.push({ role: 'assistant', content: toolResponse });
+            }
+          }
+
+          // If we got a final response, break
+          if (finalResponse) {
+            break;
+          }
+        } else if (response.message) {
+          // LLM returned a text response
+          finalResponse = response.message;
+          break;
+        } else {
+          break;
+        }
+      }
+
+      // Update conversation with final response
+      if (finalResponse) {
+        const updatedConversation = [
+          ...newMessages,
+          { role: 'assistant', content: finalResponse },
+        ];
+        setConversation(updatedConversation);
+        speak(finalResponse);
+        
+        if (finalCard) {
+          setCurrentCard(finalCard);
+        }
+      } else if (iterations >= maxIterations) {
+        const errorMsg = 'Sorry, the conversation took too many steps. Please try again.';
         setConversation([
           ...newMessages,
-          { role: 'assistant', content: responseText },
+          { role: 'assistant', content: errorMsg },
         ]);
-        speak(responseText);
-      } else if (response.message) {
-        setConversation([
-          ...newMessages,
-          { role: 'assistant', content: response.message },
-        ]);
-        speak(response.message);
+        speak(errorMsg);
       }
     } catch (error: any) {
       console.error('Error processing input:', error);
@@ -168,43 +230,60 @@ export default function AlexaPage() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', background: '#000' }}>
+    <div style={{ display: 'flex', height: '100vh', background: '#000', overflow: 'hidden' }}>
       {/* Main conversation area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '2rem' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '2rem', minWidth: 0 }}>
         <header style={{ marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>Simulated Alexa+</h1>
-          <p style={{ color: 'var(--color-light-gray)' }}>Voice-enabled corner store assistant</p>
+          <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem', fontWeight: '600', letterSpacing: '-0.02em' }}>
+            Simulated Alexa+
+          </h1>
+          <p style={{ color: '#999', fontSize: '0.875rem' }}>Voice-enabled corner store assistant</p>
         </header>
 
         {/* Conversation */}
         <div style={{ 
           flex: 1, 
           overflowY: 'auto', 
-          marginBottom: '2rem',
-          border: '1px solid var(--color-gray)',
-          borderRadius: '0.5rem',
+          marginBottom: '1.5rem',
+          border: '1px solid #333',
+          borderRadius: '8px',
           padding: '1rem',
+          minHeight: 0,
         }}>
+          {conversation.length === 0 && (
+            <div style={{ 
+              textAlign: 'center', 
+              color: '#666', 
+              padding: '3rem 1rem',
+            }}>
+              <p style={{ fontSize: '1.125rem', marginBottom: '1rem' }}>
+                Try: "I'm having 6 friends over for chai and snacks..."
+              </p>
+              <p style={{ fontSize: '0.875rem' }}>
+                Or: "ek kilo atta aur do packet doodh"
+              </p>
+            </div>
+          )}
           {conversation.map((msg, i) => (
             <div
               key={i}
               style={{
                 marginBottom: '1rem',
                 padding: '1rem',
-                background: msg.role === 'user' ? '#1a1a1a' : '#0a0a0a',
-                borderRadius: '0.5rem',
-                borderLeft: `4px solid ${msg.role === 'user' ? 'var(--color-green)' : 'var(--color-red)'}`,
+                background: msg.role === 'user' ? '#0a0a0a' : '#1a1a1a',
+                borderRadius: '8px',
+                borderLeft: `3px solid ${msg.role === 'user' ? '#16a34a' : '#dc2626'}`,
               }}
             >
-              <div style={{ fontSize: '0.875rem', color: 'var(--color-gray)', marginBottom: '0.5rem' }}>
+              <div style={{ fontSize: '0.75rem', color: '#666', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: '600' }}>
                 {msg.role === 'user' ? 'You' : 'Nukkad'}
               </div>
-              <div>{msg.content}</div>
+              <div style={{ lineHeight: '1.6' }}>{msg.content}</div>
             </div>
           ))}
           {isProcessing && (
-            <div style={{ textAlign: 'center', color: 'var(--color-gray)' }}>
-              Processing...
+            <div style={{ textAlign: 'center', color: '#666', padding: '1rem' }}>
+              <div style={{ display: 'inline-block' }}>Processing...</div>
             </div>
           )}
         </div>
@@ -215,11 +294,11 @@ export default function AlexaPage() {
             onClick={startListening}
             disabled={isListening || isProcessing}
             style={{
-              width: '4rem',
-              height: '4rem',
+              width: '56px',
+              height: '56px',
               borderRadius: '50%',
-              background: isListening ? 'var(--color-red)' : 'var(--color-white)',
-              color: isListening ? 'var(--color-white)' : 'var(--color-black)',
+              background: isListening ? '#dc2626' : '#fff',
+              color: isListening ? '#fff' : '#000',
               border: 'none',
               fontSize: '1.5rem',
               display: 'flex',
@@ -227,11 +306,14 @@ export default function AlexaPage() {
               justifyContent: 'center',
               cursor: isListening || isProcessing ? 'not-allowed' : 'pointer',
               opacity: isListening || isProcessing ? 0.7 : 1,
+              flexShrink: 0,
+              transition: 'all 0.2s',
             }}
+            title={isListening ? 'Listening...' : 'Click to speak'}
           >
             🎤
           </button>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <input
               type="text"
               value={transcript}
@@ -239,17 +321,20 @@ export default function AlexaPage() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && transcript && !isProcessing) {
                   handleUserInput(transcript);
+                  setTranscript('');
                 }
               }}
               placeholder="Or type your message here..."
+              disabled={isProcessing}
               style={{
                 width: '100%',
                 padding: '1rem',
-                background: '#1a1a1a',
-                border: '1px solid var(--color-gray)',
-                borderRadius: '0.5rem',
-                color: 'var(--color-white)',
+                background: '#0a0a0a',
+                border: '1px solid #333',
+                borderRadius: '8px',
+                color: '#fff',
                 fontSize: '1rem',
+                outline: 'none',
               }}
             />
           </div>
@@ -258,21 +343,25 @@ export default function AlexaPage() {
         {/* MCP Apps Card */}
         {currentCard && (
           <div style={{ 
-            marginTop: '2rem',
+            marginTop: '1.5rem',
             padding: '1.5rem',
-            background: '#1a1a1a',
-            border: '2px solid var(--color-green)',
-            borderRadius: '0.5rem',
+            background: '#0a0a0a',
+            border: '2px solid #16a34a',
+            borderRadius: '8px',
+            maxHeight: '400px',
+            overflowY: 'auto',
           }}>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>
-              {currentCard.type === 'cart' && '🛒 Order Summary'}
-              {currentCard.type === 'khata' && '📒 Khata Ledger'}
-              {currentCard.type === 'tracker' && '📦 Order Tracker'}
+            <h3 style={{ fontSize: '1.125rem', marginBottom: '1rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {currentCard.type === 'cart' && <>🛒 Order Summary</>}
+              {currentCard.type === 'khata' && <>📒 Khata Ledger</>}
+              {currentCard.type === 'tracker' && <>📦 Order Tracker</>}
             </h3>
             <pre style={{ 
-              fontSize: '0.875rem', 
-              color: 'var(--color-light-gray)',
+              fontSize: '0.75rem', 
+              color: '#999',
               overflowX: 'auto',
+              lineHeight: '1.5',
+              fontFamily: 'ui-monospace, monospace',
             }}>
               {JSON.stringify(currentCard.data, null, 2)}
             </pre>
@@ -283,14 +372,16 @@ export default function AlexaPage() {
       {/* Protocol panel */}
       <div style={{ 
         width: '400px', 
-        borderLeft: '1px solid var(--color-gray)',
+        borderLeft: '1px solid #333',
         padding: '2rem',
         overflowY: 'auto',
         background: '#0a0a0a',
-      }}>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>MCP Protocol</h2>
-        <p style={{ fontSize: '0.875rem', color: 'var(--color-gray)', marginBottom: '2rem' }}>
-          JSON-RPC messages over Streamable HTTP
+        display: 'none',
+      }}
+      className="protocol-panel">
+        <h2 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', fontWeight: '600' }}>MCP Protocol</h2>
+        <p style={{ fontSize: '0.75rem', color: '#666', marginBottom: '1.5rem' }}>
+          JSON-RPC 2.0 over Streamable HTTP
         </p>
         <div>
           {protocolMessages.map((msg, i) => (
@@ -299,25 +390,55 @@ export default function AlexaPage() {
               style={{
                 marginBottom: '1rem',
                 padding: '0.75rem',
-                background: msg.type === 'request' ? '#1a0a0a' : '#0a1a0a',
-                borderRadius: '0.25rem',
-                fontSize: '0.75rem',
-                fontFamily: 'monospace',
+                background: msg.type === 'request' ? '#1a0505' : '#051a0a',
+                borderRadius: '4px',
+                fontSize: '0.625rem',
+                fontFamily: 'ui-monospace, monospace',
+                border: `1px solid ${msg.type === 'request' ? '#331010' : '#103310'}`,
               }}
             >
               <div style={{ 
-                color: msg.type === 'request' ? 'var(--color-red)' : 'var(--color-green)',
-                marginBottom: '0.25rem',
+                color: msg.type === 'request' ? '#dc2626' : '#16a34a',
+                marginBottom: '0.5rem',
+                fontSize: '0.625rem',
+                fontWeight: '600',
               }}>
-                {msg.type === 'request' ? '→' : '←'} {new Date(msg.timestamp).toLocaleTimeString()}
+                {msg.type === 'request' ? '→ REQUEST' : '← RESPONSE'} {new Date(msg.timestamp).toLocaleTimeString()}
               </div>
-              <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+              <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: '1.4' }}>
                 {JSON.stringify(msg.data, null, 2)}
               </pre>
             </div>
           ))}
         </div>
       </div>
+
+      <style jsx global>{`
+        @media (min-width: 768px) {
+          .protocol-panel {
+            display: block !important;
+          }
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+          background: #0a0a0a;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+          background: #333;
+          border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+          background: #444;
+        }
+      `}</style>
     </div>
   );
 }

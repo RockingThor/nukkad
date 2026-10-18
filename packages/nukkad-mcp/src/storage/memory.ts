@@ -85,6 +85,104 @@ export class MemoryStorage implements StorageLayer {
         date: '2026-10-05T09:00:00Z',
       },
     ]);
+
+    // Add some seed orders
+    this.initializeSeedOrders();
+  }
+
+  private initializeSeedOrders() {
+    // Past order 1 - delivered
+    const order1: Order = {
+      id: 'order-000001',
+      customerId: 'customer-1',
+      shopId: 'shop-kirana-1',
+      items: [
+        {
+          productId: 'prod-kirana-001',
+          shopId: 'shop-kirana-1',
+          quantity: 1,
+          price: 45,
+          productName: 'Wheat Flour',
+        },
+        {
+          productId: 'prod-kirana-002',
+          shopId: 'shop-kirana-1',
+          quantity: 1,
+          price: 65,
+          productName: 'Rice',
+        },
+      ],
+      total: 110,
+      status: 'delivered',
+      paymentMethod: 'cash',
+      createdAt: '2026-10-15T09:00:00Z',
+      updatedAt: '2026-10-15T11:30:00Z',
+      deliveryAddress: '456 Apartment Complex, Building B, Flat 302',
+    };
+    this.orders.set(order1.id, order1);
+    this.orderCounter = 2;
+
+    // Past order 2 - ready for pickup
+    const order2: Order = {
+      id: 'order-000002',
+      customerId: 'customer-2',
+      shopId: 'shop-bakery-1',
+      items: [
+        {
+          productId: 'prod-bakery-001',
+          shopId: 'shop-bakery-1',
+          quantity: 2,
+          price: 35,
+          productName: 'White Bread',
+        },
+        {
+          productId: 'prod-bakery-003',
+          shopId: 'shop-bakery-1',
+          quantity: 1,
+          price: 20,
+          productName: 'Pav Buns',
+        },
+      ],
+      total: 90,
+      status: 'ready',
+      paymentMethod: 'upi',
+      createdAt: '2026-10-17T14:00:00Z',
+      updatedAt: '2026-10-17T15:00:00Z',
+      deliveryAddress: '789 Villa Gardens, House 15',
+    };
+    this.orders.set(order2.id, order2);
+    this.orderCounter = 3;
+
+    // Past order 3 - accepted, being prepared
+    const order3: Order = {
+      id: 'order-000003',
+      customerId: 'customer-1',
+      shopId: 'shop-dairy-1',
+      items: [
+        {
+          productId: 'prod-dairy-001',
+          shopId: 'shop-dairy-1',
+          quantity: 2,
+          price: 60,
+          productName: 'Milk',
+        },
+        {
+          productId: 'prod-dairy-002',
+          shopId: 'shop-dairy-1',
+          quantity: 1,
+          price: 45,
+          productName: 'Curd',
+        },
+      ],
+      total: 165,
+      status: 'accepted',
+      paymentMethod: 'khata',
+      createdAt: '2026-10-18T08:00:00Z',
+      updatedAt: '2026-10-18T08:15:00Z',
+      deliveryAddress: '456 Apartment Complex, Building B, Flat 302',
+    };
+    this.orders.set(order3.id, order3);
+    this.orderCounter = 4;
   }
 
   async getShops(): Promise<Shop[]> {

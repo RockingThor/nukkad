@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createNukkadServer } from '@nukkad/mcp-server';
-import { MemoryStorage } from '@nukkad/mcp-server/dist/storage/memory.js';
+import { getSharedStorage } from '../../shop/[id]/orders/route';
 
-const storage = new MemoryStorage();
+const storage = getSharedStorage();
 const server = createNukkadServer(storage);
 
 export async function POST(request: NextRequest) {
