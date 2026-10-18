@@ -3,8 +3,10 @@
  *   /mcp           MCP 2025-11-25 Streamable HTTP (stateless), via mcp-lambda-kit
  *   /api/chat      LLM proxy for the simulated Alexa+ host, key stays server side
  *   /api/shop/:id  shop console data, /api/orders/:id/status to move an order
- *   /api/reset     reset the demo data
  *   everything else: the static web app
+ * The demo data resets once a day at 3 AM IST: the first request after 3 AM claims the reset,
+ * and a scheduled direct invoke with { "nukkad": "reset" } does it on the dot. Neither can be
+ * triggered on demand over the Function URL.
  */
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -81,7 +83,7 @@ async function serveStatic(req: Request) {
   return Response.json({ error: 'not_found' }, { status: 404 });
 }
 
-export const handler = createLambdaHandler({
+const httpHandler = createLambdaHandler({
   createServer: () => createNukkadServer(storage()),
   routes: {
     '/health': () => Response.json({ ok: true, storage: TABLE ? 'dynamodb' : 'memory', protocol: '2025-11-25' }),
@@ -99,11 +101,49 @@ export const handler = createLambdaHandler({
       await s.updateOrderStatus(id, status);
       return Response.json(await s.getOrder(id));
     },
-    '/api/reset': async (req) => {
-      if (req.method !== 'POST') return new Response(null, { status: 405 });
-      if (TABLE) await new DynamoStorage(TABLE).reset(); else memory = new MemoryStorage();
-      return Response.json({ ok: true });
-    },
   },
   fallback: serveStatic,
 });
+
+/** Restore the seeded shops, stock, customers, orders and khata balances. */
+export async function resetDemoData() {
+  if (TABLE) await new DynamoStorage(TABLE).reset(); else memory = new MemoryStorage();
+}
+
+/**
+ * Day key for the nightly reset: the date in IST, rolling over at 3 AM IST.
+ * IST is UTC+5:30, so 3 AM IST is UTC+2:30 of the same day key.
+ */
+export const resetDay = (now = Date.now()) => new Date(now + 2.5 * 3600_000).toISOString().slice(0, 10);
+
+let checkedDay: string | undefined;
+/**
+ * Backup for the schedule: the first request after 3 AM IST resets the demo data once,
+ * claimed with a conditional write so only one instance runs it.
+ */
+async function ensureDailyReset() {
+  if (!TABLE) return;
+  const day = resetDay();
+  if (checkedDay === day) return;
+  try {
+    const db = new DynamoStorage(TABLE);
+    if (await db.claimDailyReset(day)) { await db.reset(); console.log('nukkad daily reset', day); }
+    checkedDay = day;
+  } catch (e) { console.error('nukkad daily reset failed', e); }
+}
+
+/**
+ * Function URL events always carry requestContext.http. The scheduled reset event is a plain
+ * object with no requestContext, which only a direct Lambda invoke, for example from
+ * EventBridge Scheduler with IAM permission, can send.
+ */
+export const handler = async (event: any) => {
+  if (event && !event.requestContext && event.nukkad === 'reset') {
+    const started = Date.now();
+    await resetDemoData();
+    console.log('nukkad demo reset', { ms: Date.now() - started });
+    return { ok: true, reset: true };
+  }
+  await ensureDailyReset();
+  return httpHandler(event);
+};

@@ -6,9 +6,9 @@ export function seedKhata(): { accounts: KhataAccount[]; entries: KhataEntry[] }
   const c = 'customer-1';
   return {
     accounts: [
-      { customerId: c, shopId: 'shop-kirana-1', balance: -450, creditLimit: 5000, lastUpdated: now },
-      { customerId: c, shopId: 'shop-bakery-1', balance: -120, creditLimit: 2000, lastUpdated: now },
-      { customerId: c, shopId: 'shop-dairy-1', balance: -240, creditLimit: 3000, lastUpdated: now },
+      { customerId: c, shopId: 'shop-kirana-1', balance: -450, creditLimit: 10000, lastUpdated: now },
+      { customerId: c, shopId: 'shop-bakery-1', balance: -120, creditLimit: 5000, lastUpdated: now },
+      { customerId: c, shopId: 'shop-dairy-1', balance: -240, creditLimit: 6000, lastUpdated: now },
     ],
     entries: [
       { id: 'khata-001', customerId: c, shopId: 'shop-kirana-1', amount: 500, type: 'debit', description: 'Monthly groceries', date: '2026-10-01T10:00:00Z' },

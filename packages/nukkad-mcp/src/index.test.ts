@@ -49,7 +49,7 @@ describe('nukkad mcp', () => {
 
   it('refuses khata orders over the credit limit', async () => {
     const c = await connect();
-    await c.callTool({ name: 'build_cart', arguments: { customerId: 'customer-1', items: [{ productId: 'prod-dairy-005', quantity: 9 }] } });
+    await c.callTool({ name: 'build_cart', arguments: { customerId: 'customer-1', items: [{ productId: 'prod-dairy-005', quantity: 20 }] } });
     const r: any = await c.callTool({ name: 'place_order', arguments: { customerId: 'customer-1', paymentMethod: 'khata' } });
     expect(r.isError).toBe(true);
     expect(r.content[0].text).toContain('Khata limit');

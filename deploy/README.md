@@ -21,7 +21,19 @@ aws lambda add-permission --function-name nukkad --statement-id url --action lam
   --principal '*' --function-url-auth-type NONE
 aws lambda add-permission --function-name nukkad --statement-id url-invoke --action lambda:InvokeFunction \
   --principal '*' --invoked-via-function-url
-curl -X POST <function-url>/api/reset   # seed the demo data
+aws lambda invoke --function-name nukkad --cli-binary-format raw-in-base64-out --payload '{"nukkad":"reset"}' /dev/stdout   # seed the demo data
+```
+
+## Nightly demo reset, optional
+
+The function already resets itself on the first request after 3 AM IST. This schedule makes it run on the dot. The deploying user needs `scheduler:CreateSchedule` and `iam:PassRole` on the scheduler role.
+
+```bash
+aws iam create-role --role-name nukkad-scheduler-role --assume-role-policy-document file://scheduler-trust.json
+aws iam put-role-policy --role-name nukkad-scheduler-role --policy-name invoke-nukkad --policy-document file://scheduler-invoke.json
+aws scheduler create-schedule --name nukkad-nightly-reset --schedule-expression 'cron(0 3 * * ? *)' \
+  --schedule-expression-timezone Asia/Kolkata --flexible-time-window Mode=OFF \
+  --target '{"Arn":"<function-arn>","RoleArn":"arn:aws:iam::<account>:role/nukkad-scheduler-role","Input":"{\"nukkad\":\"reset\"}"}'
 ```
 
 ## Updates

@@ -95,13 +95,36 @@ export class DynamoStorage implements StorageLayer {
   }
 
   /** Wipe demo state and write the seed again. */
+  /**
+   * Claim the nightly reset for a day key. Returns true for exactly one caller per day,
+   * using a conditional write on its own RESET item, which reset() never wipes.
+   */
+  async claimDailyReset(day: string): Promise<boolean> {
+    try {
+      await this.db.send(new PutCommand({
+        TableName: this.table, Item: { pk: 'RESET', sk: 'daily', day, at: new Date().toISOString() },
+        ConditionExpression: 'attribute_not_exists(#d) OR #d <> :d', ExpressionAttributeNames: { '#d': 'day' }, ExpressionAttributeValues: { ':d': day },
+      }));
+      return true;
+    } catch (e: any) {
+      if (e?.name === 'ConditionalCheckFailedException') return false;
+      throw e;
+    }
+  }
   async reset() {
     const wipe = async (pk: string) => {
-      const r = await this.db.send(new QueryCommand({ TableName: this.table, KeyConditionExpression: 'pk = :p', ExpressionAttributeValues: { ':p': pk }, ProjectionExpression: 'pk, sk' }));
-      await this.batch((r.Items ?? []).map((i) => ({ DeleteRequest: { Key: { pk: i.pk, sk: i.sk } } })));
+      let start: Record<string, any> | undefined;
+      do {
+        const r = await this.db.send(new QueryCommand({ TableName: this.table, KeyConditionExpression: 'pk = :p', ExpressionAttributeValues: { ':p': pk }, ProjectionExpression: 'pk, sk', ExclusiveStartKey: start }));
+        await this.batch((r.Items ?? []).map((i) => ({ DeleteRequest: { Key: { pk: i.pk, sk: i.sk } } })));
+        start = r.LastEvaluatedKey;
+      } while (start);
     };
     const k = seedKhata();
-    for (const pk of ['ORDER', 'CART', 'META', 'KHATA', ...k.accounts.map((a) => `KENTRY#${a.customerId}#${a.shopId}`)]) await wipe(pk);
+    // Ledgers for every account that exists now, including ones opened during testing.
+    const live = await this.db.send(new QueryCommand({ TableName: this.table, KeyConditionExpression: 'pk = :p', ExpressionAttributeValues: { ':p': 'KHATA' }, ProjectionExpression: 'sk' }));
+    const ledgers = new Set([...k.accounts.map((a) => `KENTRY#${a.customerId}#${a.shopId}`), ...(live.Items ?? []).map((i) => `KENTRY#${i.sk}`)]);
+    for (const pk of ['ORDER', 'CART', 'META', 'KHATA', ...ledgers]) await wipe(pk);
     const items: any[] = [
       ...seedShops.map((d) => ({ pk: 'SHOP', sk: d.id, d })),
       ...seedProducts.map((d) => ({ pk: 'PRODUCT', sk: d.id, d })),

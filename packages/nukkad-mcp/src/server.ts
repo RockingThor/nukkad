@@ -10,7 +10,7 @@ createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
   const headers: Record<string, string> = {};
   for (const [k, v] of Object.entries(req.headers)) if (typeof v === 'string') headers[k] = v;
-  const out = await handler({
+  const out: any = await handler({
     rawPath: url.pathname, rawQueryString: url.search.slice(1), headers,
     requestContext: { http: { method: req.method ?? 'GET' } },
     body: chunks.length ? Buffer.concat(chunks).toString('base64') : undefined, isBase64Encoded: true,

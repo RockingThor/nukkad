@@ -8,7 +8,6 @@ Feedback on every tool and service used to build Nukkad during the Amazon Build,
 * **Amazon DynamoDB.** One table in on demand mode, single table design. It stores shops, products with stock, customers and their usual order, orders with their status, and the khata accounts with every ledger entry. The `place_order` tool checks the credit limit at each shop before it writes anything.
 * **AWS IAM.** A dedicated role for the function with basic logging and access to this one table only.
 * **Amazon CloudWatch Logs.** Function logs, including errors from the agent proxy.
-* **AWS Budgets.** A monthly budget alert so the demo never runs up a bill.
 * **Amazon Bedrock.** Planned for the agent, but blocked on my account during the hackathon. See below.
 
 ## MCP TypeScript SDK and the Streamable HTTP transport
@@ -53,7 +52,7 @@ Feedback on every tool and service used to build Nukkad during the Amazon Build,
 
 ## Alexa+ developer documentation and toolkit
 
-* **What I used it for:** the requirements in the MCP QuickStart, the latency target and the add-on manifest format.
+* **What I used it for:** the requirements in the MCP QuickStart, the latency target and the add on manifest format.
 * **What worked well:** the requirements are concrete, which made it easy to build towards them.
 * **What needs work:** the toolkit, CLI and web simulator are limited to select partners. A sandbox for hackathon participants would let us test real rendering.
 * **Onboarding:** reading only, no hands on access.
